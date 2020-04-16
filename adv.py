@@ -10,8 +10,8 @@ world = World()
 
 
 # You may uncomment the smaller graphs for development and testing purposes.
-# map_file = "maps/test_line.txt"
-map_file = "maps/test_cross.txt"
+map_file = "maps/test_line.txt"
+# map_file = "maps/test_cross.txt"
 # map_file = "maps/test_loop.txt"
 # map_file = "maps/test_loop_fork.txt"
 # map_file = "maps/main_maze.txt"
@@ -38,14 +38,23 @@ def add_current_room_to_conns():
         next_room = getattr(player.current_room, f"{direction}_to")
         connections[player.current_room.id][direction] = next_room.id
 
+# main travel loop
 add_current_room_to_conns()
-print(connections)
-player.travel("n")
-add_current_room_to_conns()
-print(connections)
-player.travel("s")
-add_current_room_to_conns()
-print(connections)
+while len(room_graph) > len(connections):
+
+    # TODO: decide which direction to go
+    door = "n"
+
+    # go
+    player.travel(door)
+    traversal_path.append(door)
+
+    # if in a new room, mark it on the map
+    if player.current_room.id not in connections:
+        add_current_room_to_conns()
+
+print(traversal_path)
+    
 
 # TRAVERSAL TEST
 visited_rooms = set()
