@@ -43,7 +43,15 @@ add_current_room_to_conns()
 while len(room_graph) > len(connections):
 
     # TODO: decide which direction to go
-    door = random.choice(player.current_room.get_exits())
+    door = None
+    options = player.current_room.get_exits()
+    # go through the first door that leads to a new room
+    for option in options:
+        if connections[player.current_room.id][option] not in connections:
+            door = option
+    # if all exits from a room have previously been explored
+    if door is None:
+        door = random.choice(options)
 
     # go
     player.travel(door)
