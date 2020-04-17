@@ -46,32 +46,28 @@ traversal_path = []
 # traversal code start
 connections = {}  # a running map of the world
 
+world_map = {key: room_graph[key][1] for key in room_graph}
+# print(world_map[0])
+
 def add_current_room_to_conns():
     connections[player.current_room.id] = {}
     for direction in player.current_room.get_exits():
         next_room = getattr(player.current_room, f"{direction}_to")
         connections[player.current_room.id][direction] = next_room.id
 
-# def reverse_direction(direction):
-#     di = {'n': 's',
-#           's': 'n',
-#           'e': 'w',
-#           'w': 'e'}
-#     return di[direction]
-
 def get_adj_ids(id):
     """Takes a room ID and returns the IDs of adjascent rooms"""
     results = []
-    for direction in connections[id]:
-        results.append(connections[id][direction])
+    for direction in world_map[id]:
+        results.append(world_map[id][direction])
     return results
 
-def bfs():
-    """Starting from the player's current position,
+def bfs(id):
+    """Starting from given room id,
     return the sequence of rooms that will take them to
     the nearest unexplored room"""
     qq = Queue()
-    qq.enqueue([player.current_room.id])
+    qq.enqueue([id])
     visited = set()
     while qq.size() > 0:
         path = qq.dequeue()
@@ -84,18 +80,18 @@ def bfs():
                 qq.enqueue(new_path)
     return []
 
-def get_path():
+def get_path(id):
     """Based on the room sequence from bfs,
     returns the series of cardinal directions to take
     to follow the path"""
-    route = bfs()
+    route = bfs(id)
     path = []
     for index, stop in enumerate(route[1:]):
         # note: the enumerate object itself is zero-indexed
         # previous stop id is route[index]
         # append the route[index] -> stop direction
-        for direction in connections[route[index]]:
-            if connections[route[index]][direction] == stop:
+        for direction in world_map[route[index]]:
+            if world_map[route[index]][direction] == stop:
                 path.append(direction)
     return path[::-1]
 
@@ -115,7 +111,7 @@ def make_path():
         for option in options:
             if connections[player.current_room.id][option] not in connections:
                 set_path = []
-                door = option
+                # door = option
                 real_options.append(option)
         try:
             door = random.choice(real_options)
@@ -126,7 +122,7 @@ def make_path():
         if door is None:
             # BFS for the next unexplored room
             if len(set_path) == 0:
-                set_path = get_path()
+                set_path = get_path(player.current_room.id)
                 # print(set_path)
             door = set_path[-1]
             set_path = set_path[:-1]
@@ -143,15 +139,17 @@ def make_path():
     return traversal_path.copy()
 
 # print(traversal_path)
+
+
 # while True:
 #     traversal_path = []
 #     connections = {}
 #     consider = make_path()
 #     if len(traversal_path) < 970:
+#         print(consider)
 #         print(f"found traversal path {len(traversal_path)} long")
 #         if len(traversal_path) < 960:
 #             break
-
 # print(consider)
 
 make_path()
