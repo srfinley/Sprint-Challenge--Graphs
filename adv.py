@@ -35,7 +35,7 @@ room_graph=literal_eval(open(map_file, "r").read())
 world.load_graph(room_graph)
 
 # Print an ASCII map
-# world.print_rooms()
+world.print_rooms()
 
 player = Player(world.starting_room)
 
@@ -95,6 +95,42 @@ def get_path(id):
                 path.append(direction)
     return path[::-1]
 
+def is_branch(direction, current_room=None):
+    if current_room is None:
+        current_room = player.current_room
+    starting_room = getattr(current_room, f"{direction}_to")
+    # print(f"Checking whether {direction} is a branch from {current_room.id}")
+    # return true if it is IMPOSSIBLE to get from starting_room to current room indirectly
+    # do a BFS starting in starting_room looking for current_room
+    # that excludes the direct edge
+    # strategy: add the first layer to the queue "manually"
+    qq = Queue()
+    # qq.enqueue([starting_room.id])
+    visited = set([starting_room.id])
+    path = [starting_room.id]
+    # enqueues all paths from starting_room that don't go back to current_room
+    for next_room in get_adj_ids(path[-1]):
+        if next_room != current_room.id:
+            new_path = path + [next_room]
+            qq.enqueue(new_path)
+    while qq.size() > 0:
+        path = qq.dequeue()
+        # print(path)
+        # print(visited)
+        if path[-1] not in visited:
+            visited.add(path[-1])
+            # print(f"adj_ids to {path[-1]}: {get_adj_ids(path[-1])}")
+            for next_room in get_adj_ids(path[-1]):
+                if next_room == current_room.id:
+                    # print(f"found loop {direction} of {current_room.id}")
+                    return False
+                new_path = [path] + [next_room]
+                qq.enqueue(new_path)
+
+    # if the search terminates without finding the current room, it's a branch
+    # print(f"found branch {direction} of {current_room.id}")
+    return True
+
 set_path = []
 
 def make_path():
@@ -107,16 +143,29 @@ def make_path():
         options = player.current_room.get_exits()
         # go through the first door that leads to a new room
         # minimal intervention to try for stretch: what if the choice is random?
-        real_options = []
+        # strategy change: what if the player always went down dead ends when available
+        # the test: if the next room LOOPS back to the starting room, deprioritize
+        # real_options = []
         for option in options:
             if connections[player.current_room.id][option] not in connections:
-                set_path = []
-                # door = option
-                real_options.append(option)
-        try:
-            door = random.choice(real_options)
-        except IndexError:
-            door = None
+                # print(f"checking {option} of {player.current_room.id}")
+                if is_branch(option):
+                    set_path = []
+                    door = option
+                    break
+
+        # handle when all unstarted paths are loops
+        # currently no good way to distinguish among different loops
+        if door is None:
+            for option in options:
+                if connections[player.current_room.id][option] not in connections:
+                    set_path = []
+                    door = option
+                    # real_options.append(option)
+        # try:
+        #     door = random.choice(real_options)
+        # except IndexError:
+        #     door = None
 
         # if all exits from a room have previously been explored
         if door is None:
@@ -129,6 +178,7 @@ def make_path():
             
 
         # go
+        # print(f"going {door}")
         player.travel(door)
         traversal_path.append(door)
 
@@ -136,9 +186,9 @@ def make_path():
         if player.current_room.id not in connections:
             add_current_room_to_conns()
 
-    return traversal_path.copy()
+    # return traversal_path.copy()
 
-# print(traversal_path)
+
 
 
 # while True:
@@ -153,6 +203,8 @@ def make_path():
 # print(consider)
 
 make_path()
+
+print(traversal_path)
 
 # TRAVERSAL TEST
 visited_rooms = set()
