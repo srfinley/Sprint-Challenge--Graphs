@@ -35,7 +35,7 @@ room_graph=literal_eval(open(map_file, "r").read())
 world.load_graph(room_graph)
 
 # Print an ASCII map
-world.print_rooms()
+# world.print_rooms()
 
 player = Player(world.starting_room)
 
@@ -101,38 +101,60 @@ def get_path():
 
 set_path = []
 
-# main travel loop
-add_current_room_to_conns()
-while len(room_graph) > len(connections):
+def make_path():
+    # main travel loop
+    add_current_room_to_conns()
+    while len(room_graph) > len(connections):
 
-    # TODO: decide which direction to go
-    door = None
-    options = player.current_room.get_exits()
-    # go through the first door that leads to a new room
-    for option in options:
-        if connections[player.current_room.id][option] not in connections:
-            set_path = []
-            door = option
-    # if all exits from a room have previously been explored
-    if door is None:
-        # BFS for the next unexplored room
-        if len(set_path) == 0:
-            set_path = get_path()
-            # print(set_path)
-        door = set_path[-1]
-        set_path = set_path[:-1]
-        
+        # decide which direction to go
+        door = None
+        options = player.current_room.get_exits()
+        # go through the first door that leads to a new room
+        # minimal intervention to try for stretch: what if the choice is random?
+        real_options = []
+        for option in options:
+            if connections[player.current_room.id][option] not in connections:
+                set_path = []
+                door = option
+                real_options.append(option)
+        try:
+            door = random.choice(real_options)
+        except IndexError:
+            door = None
 
-    # go
-    player.travel(door)
-    traversal_path.append(door)
+        # if all exits from a room have previously been explored
+        if door is None:
+            # BFS for the next unexplored room
+            if len(set_path) == 0:
+                set_path = get_path()
+                # print(set_path)
+            door = set_path[-1]
+            set_path = set_path[:-1]
+            
 
-    # if in a new room, mark it on the map
-    if player.current_room.id not in connections:
-        add_current_room_to_conns()
+        # go
+        player.travel(door)
+        traversal_path.append(door)
 
-print(traversal_path)
-    
+        # if in a new room, mark it on the map
+        if player.current_room.id not in connections:
+            add_current_room_to_conns()
+
+    return traversal_path.copy()
+
+# print(traversal_path)
+# while True:
+#     traversal_path = []
+#     connections = {}
+#     consider = make_path()
+#     if len(traversal_path) < 970:
+#         print(f"found traversal path {len(traversal_path)} long")
+#         if len(traversal_path) < 960:
+#             break
+
+# print(consider)
+
+make_path()
 
 # TRAVERSAL TEST
 visited_rooms = set()
